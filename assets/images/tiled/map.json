@@ -255,7 +255,7 @@
  "tilesets":[
         {
          "firstgid":1,
-         "source":"mainlevbuild.json"
+         "source":"tileSet.json"
         }],
  "tilewidth":16,
  "type":"map",
