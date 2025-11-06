@@ -1,6 +1,5 @@
 // import 'package:app/components/game-items/inventory_overlay.dart';
 // import 'package:app/components/game-items/key.dart';
-// import 'package:app/components/game-items/stare.dart';
 // import 'package:bonfire/bonfire.dart';
 // import 'package:flutter/material.dart';
 // import 'package:flutter/services.dart';
@@ -76,7 +75,6 @@
 //                   KeyItem(Vector2(256, 128), color: KeyColor.gold),
 //                   KeyItem(Vector2(288, 128), color: KeyColor.blue),
 //                   KeyItem(Vector2(320, 128), color: KeyColor.green),                
-//                   Stare(Vector2(60, 128))
 //                 ],
 //                 overlayBuilderMap: {
 //                   'inventory': (context, game) => InventoryOverlay(game: game),
@@ -122,6 +120,8 @@
 // }
 
 
+
+import 'package:app/components/game-items/inventory_overlay.dart';
 import 'package:app/components/game-items/key.dart';
 import 'package:bonfire/bonfire.dart';
 import 'package:flutter/material.dart';
@@ -223,6 +223,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   map: map.map,
                   player: Knight(map.properties['player_position']),
                   components: components,
+                  overlayBuilderMap: {
+                    'inventory': (context, game) => InventoryOverlay(game: game),
+                  },
+                  initialActiveOverlays: const ['inventory'],
                   playerControllers: [
                     Joystick(
                       directional: JoystickDirectional(
