@@ -32,49 +32,49 @@ class Knight extends SimplePlayer with BlockMovementCollision {
   }
 
   // ✅ Bonfire ≥ 2.x : c'est cette méthode-là
-@override
-void onJoystickChangeDirectional(JoystickDirectionalEvent event) {
-  // Inversion éventuelle
-  final dir = invertControls ? _invert(event.directional) : event.directional;
+  @override
+  void onJoystickChangeDirectional(JoystickDirectionalEvent event) {
+    // Inversion éventuelle
+    final dir = invertControls ? _invert(event.directional) : event.directional;
 
-  // ✅ Quand le joystick est relâché (ou presque), on stoppe TOUT
-  if (dir == JoystickMoveDirectional.IDLE || event.intensity == 0) {
-    stopMove(); // <-- important pour remettre la vélocité à zéro
-    idle();
-    return;
+    // ✅ Quand le joystick est relâché (ou presque), on stoppe TOUT
+    if (dir == JoystickMoveDirectional.IDLE || event.intensity == 0) {
+      stopMove();
+      idle();
+      return;
+    }
+
+    switch (dir) {
+      case JoystickMoveDirectional.MOVE_LEFT:
+        moveLeft();
+        break;
+      case JoystickMoveDirectional.MOVE_RIGHT:
+        moveRight();
+        break;
+      case JoystickMoveDirectional.MOVE_UP:
+        moveUp();
+        break;
+      case JoystickMoveDirectional.MOVE_DOWN:
+        moveDown();
+        break;
+      case JoystickMoveDirectional.MOVE_UP_LEFT:
+        moveUpLeft();
+        break;
+      case JoystickMoveDirectional.MOVE_UP_RIGHT:
+        moveUpRight();
+        break;
+      case JoystickMoveDirectional.MOVE_DOWN_LEFT:
+        moveDownLeft();
+        break;
+      case JoystickMoveDirectional.MOVE_DOWN_RIGHT:
+        moveDownRight();
+        break;
+      case JoystickMoveDirectional.IDLE:
+        // déjà géré au-dessus
+        break;
+    }
   }
 
-  // Sinon, on applique la direction (avec speed)
-  switch (dir) {
-    case JoystickMoveDirectional.MOVE_LEFT:
-      moveLeft();
-      break;
-    case JoystickMoveDirectional.MOVE_RIGHT:
-      moveRight();
-      break;
-    case JoystickMoveDirectional.MOVE_UP:
-      moveUp();
-      break;
-    case JoystickMoveDirectional.MOVE_DOWN:
-      moveDown();
-      break;
-    case JoystickMoveDirectional.MOVE_UP_LEFT:
-      moveUpLeft();
-      break;
-    case JoystickMoveDirectional.MOVE_UP_RIGHT:
-      moveUpRight();
-      break;
-    case JoystickMoveDirectional.MOVE_DOWN_LEFT:
-      moveDownLeft();
-      break;
-    case JoystickMoveDirectional.MOVE_DOWN_RIGHT:
-      moveDownRight();
-      break;
-    case JoystickMoveDirectional.IDLE:
-      // déjà géré au-dessus
-      break;
-  }
-}
   JoystickMoveDirectional _invert(JoystickMoveDirectional d) {
     switch (d) {
       case JoystickMoveDirectional.MOVE_LEFT:
