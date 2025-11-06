@@ -72,6 +72,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           final id = map.id;
           final components = <GameComponent>[];
 
+          final player = Knight(
+            map.properties['player_position'],
+            invertControls: id == '/map2',
+          );
+
           if (id == '/map1') {
             components.addAll([
               KeyItem(Vector2(256, 128), color: KeyColor.gold),
@@ -79,6 +84,34 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               KeyItem(Vector2(320, 128), color: KeyColor.green),                
               TreePortal(
                 position: Vector2(tileSize * 2, tileSize * 5),
+                canTeleport: (_) async {
+                  final hasAll = player.hasKey('key_gold') &&
+                                player.hasKey('key_blue') &&
+                                player.hasKey('key_green');
+
+                  if (!hasAll) {
+                    final missing = [
+                      if (!player.hasKey('key_gold')) 'or',
+                      if (!player.hasKey('key_blue')) 'bleue',
+                      if (!player.hasKey('key_green')) 'verte',
+                    ].join(', ');
+                    player.showDamage(
+                      0,
+                      config: const TextStyle(
+                        color: Colors.redAccent,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    );
+                    print('[Portal] Clés manquantes: $missing');
+                    return false;
+                  }
+
+                  // Si on veut consommer :
+                  // player.useKey('key_gold');
+                  // player.useKey('key_blue');
+                  // player.useKey('key_green');
+                  return true;
+                },
                 onTeleport: () => MapNavigator.of(context).toNamed('/map2'),
               ),
             ]);
@@ -98,10 +131,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 opacity: _fadeController,
                 child: BonfireWidget(
                   map: map.map,
-                  player: Knight(
-                    map.properties['player_position'],   
-                    invertControls: id == '/map2',
-                  ),
+                  player: player,
                   components: components,
                   overlayBuilderMap: {
                     'inventory': (context, game) => InventoryOverlay(game: game),
@@ -154,4 +184,3 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
   }
 }
-
