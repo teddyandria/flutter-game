@@ -98,7 +98,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 opacity: _fadeController,
                 child: BonfireWidget(
                   map: map.map,
-                  player: Knight(map.properties['player_position']),
+                  player: Knight(
+                    map.properties['player_position'],   
+                    invertControls: id == '/map2',
+                  ),
                   components: components,
                   overlayBuilderMap: {
                     'inventory': (context, game) => InventoryOverlay(game: game),
