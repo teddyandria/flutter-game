@@ -65,6 +65,12 @@ flutter:
     - assets/
     - assets/images/
     - assets/images/tiled/
+    - assets/images/player/
+    - assets/images/items/
+    - assets/images/items/key_gold.png
+    - assets/images/items/key_blue.png
+    - assets/images/items/key_green.png
+    - assets/images/tiled2/
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 
