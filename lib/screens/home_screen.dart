@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'story_intro_screen.dart';
+import 'game_screen.dart';
 
-/// Écran d’accueil stylisé avec fond d’image et mise en forme.
-/// Prépare la transition vers une interface de type jeu.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -9,21 +9,18 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        // Image de fond
         decoration: const BoxDecoration(
           image: DecorationImage(
             image: AssetImage('images/bg.png'),
-            fit: BoxFit.cover, // Remplit tout l’écran
+            fit: BoxFit.cover,
           ),
         ),
         child: Container(
-          // Filtre semi-transparent pour lisibilité du texte
           color: Colors.black54.withOpacity(0.3),
           child: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Message d’introduction
                 const Text(
                   'Bienvenue dans le futur RPG Bonfire !',
                   style: TextStyle(
@@ -43,7 +40,46 @@ class HomeScreen extends StatelessWidget {
 
                 const SizedBox(height: 40),
 
-                // Bouton principal d’accès à la page de connexion
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => StoryIntroScreen(
+                          onComplete: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const GameScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.amber.shade700,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 16,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  child: const Text(
+                    'Commencer l\'Aventure',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
                 ElevatedButton(
                   onPressed: () => Navigator.pushNamed(context, '/login'),
                   style: ElevatedButton.styleFrom(

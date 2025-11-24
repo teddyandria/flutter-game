@@ -1,5 +1,10 @@
 import 'package:app/components/game-items/inventory_overlay.dart';
 import 'package:app/components/game-items/key.dart';
+import 'package:app/components/enemy_knight.dart';
+import 'package:app/components/ui/player_life_bar.dart';
+import 'package:app/components/ui/game_over_overlay.dart';
+import 'package:app/components/ui/portal_unlocked_message.dart';
+import 'package:app/components/ui/dizzy_message.dart';
 import 'package:bonfire/bonfire.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -16,6 +21,14 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late AnimationController _fadeController;
+  late FocusNode _keyboardFocusNode;
+  bool _isGameOver = false;
+  String _currentMapId = '/map1';
+  bool _showPortalUnlocked = false;
+  bool _portalWasUnlocked = false;
+  bool _showDizzyMessage = false;
+  bool _dizzyMessageShown = false;
+  Knight? _currentPlayer;
 
   @override
   void initState() {
@@ -28,6 +41,29 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(milliseconds: 400),
     );
+    _keyboardFocusNode = FocusNode();
+    _keyboardFocusNode.addListener(() {
+      if (!_keyboardFocusNode.hasFocus && _currentPlayer != null) {
+        _currentPlayer!.clearKeys();
+      }
+    });
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        _keyboardFocusNode.requestFocus();
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(GameScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (mounted && !_showPortalUnlocked && !_showDizzyMessage && !_isGameOver) {
+      Future.microtask(() {
+        if (mounted) {
+          _keyboardFocusNode.requestFocus();
+        }
+      });
+    }
   }
 
   @override
@@ -37,6 +73,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       DeviceOrientation.portraitDown,
     ]);
     _fadeController.dispose();
+    _keyboardFocusNode.dispose();
     super.dispose();
   }
 
@@ -44,9 +81,22 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     const double tileSize = 16.0;
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: MapNavigator(
+    return RawKeyboardListener(
+      autofocus: true,
+      focusNode: _keyboardFocusNode,
+      onKey: (RawKeyEvent event) {
+        if (_currentPlayer == null) return;
+        
+        if (event is RawKeyDownEvent) {
+          if (_showPortalUnlocked) return;
+          _currentPlayer!.onKeyDown(event.logicalKey);
+        } else if (event is RawKeyUpEvent) {
+          _currentPlayer!.onKeyUp(event.logicalKey);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: MapNavigator(
         initialMap: '/map1',
         maps: {
           '/map1': (context, args) => MapItem(
@@ -75,15 +125,72 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           final player = Knight(
             map.properties['player_position'],
             invertControls: id == '/map2',
+            onDeath: () {
+              setState(() {
+                _isGameOver = true;
+                _currentMapId = id;
+              });
+            },
           );
+          
+          _currentPlayer = player;
 
           if (id == '/map1') {
             components.addAll([
-              KeyItem(Vector2(256, 128), color: KeyColor.gold),
-              KeyItem(Vector2(288, 128), color: KeyColor.blue),
-              KeyItem(Vector2(320, 128), color: KeyColor.green),                
+              KeyItem(Vector2(tileSize * 35, tileSize * 8), color: KeyColor.gold),
+              KeyItem(Vector2(tileSize * 10, tileSize * 35), color: KeyColor.blue),
+              KeyItem(Vector2(tileSize * 20, tileSize * 20), color: KeyColor.green),
+              
+              EnemyKnight(
+                position: Vector2(tileSize * 15, tileSize * 10),
+                detectionRadius: 100.0,
+                patrolRadius: 60.0,
+                patrolCenter: Vector2(tileSize * 15, tileSize * 10),
+              ),
+              EnemyKnight(
+                position: Vector2(tileSize * 30, tileSize * 20),
+                detectionRadius: 120.0,
+                patrolRadius: 80.0,
+                patrolCenter: Vector2(tileSize * 30, tileSize * 20),
+              ),
+              EnemyKnight(
+                position: Vector2(tileSize * 12, tileSize * 30),
+                detectionRadius: 90.0,
+                patrolRadius: 50.0,
+                patrolCenter: Vector2(tileSize * 12, tileSize * 30),
+              ),
+              
               TreePortal(
                 position: Vector2(tileSize * 2, tileSize * 5),
+                canAppear: () {
+                  final hasAll = player.hasKey('key_gold') &&
+                         player.hasKey('key_blue') &&
+                         player.hasKey('key_green');
+                  
+                  if (hasAll && !_portalWasUnlocked) {
+                    _portalWasUnlocked = true;
+                    _currentPlayer?.clearKeys();
+                    setState(() {
+                      _showPortalUnlocked = true;
+                    });
+                    Future.delayed(const Duration(seconds: 4), () {
+                      if (mounted) {
+                        _currentPlayer?.clearKeys();
+                        setState(() {
+                          _showPortalUnlocked = false;
+                        });
+                        Future.delayed(const Duration(milliseconds: 100), () {
+                          if (mounted) {
+                            _keyboardFocusNode.requestFocus();
+                            _currentPlayer?.clearKeys();
+                          }
+                        });
+                      }
+                    });
+                  }
+                  
+                  return hasAll;
+                },
                 canTeleport: (_) async {
                   final hasAll = player.hasKey('key_gold') &&
                                 player.hasKey('key_blue') &&
@@ -106,13 +213,32 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     return false;
                   }
 
-                  // Si on veut consommer :
-                  // player.useKey('key_gold');
-                  // player.useKey('key_blue');
-                  // player.useKey('key_green');
+                  print('[Portal] Toutes les clés collectées! Téléportation...');
+                  player.useKey('key_gold');
+                  player.useKey('key_blue');
+                  player.useKey('key_green');
                   return true;
                 },
-                onTeleport: () => MapNavigator.of(context).toNamed('/map2'),
+                onTeleport: () {
+                  MapNavigator.of(context).toNamed('/map2');
+                  
+                  Future.delayed(const Duration(milliseconds: 500), () {
+                    if (mounted && !_dizzyMessageShown) {
+                      setState(() {
+                        _showDizzyMessage = true;
+                        _dizzyMessageShown = true;
+                      });
+                      
+                      Future.delayed(const Duration(seconds: 3), () {
+                        if (mounted) {
+                          setState(() {
+                            _showDizzyMessage = false;
+                          });
+                        }
+                      });
+                    }
+                  });
+                },
               ),
             ]);
           } else if (id == '/map2') {
@@ -127,16 +253,27 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
           return Stack(
             children: [
-              FadeTransition(
-                opacity: _fadeController,
-                child: BonfireWidget(
+              // GestureDetector pour détecter les clics souris (attaque)
+              GestureDetector(
+                onTap: () {
+                  // Clic gauche pour attaquer
+                  _currentPlayer?.triggerAttack();
+                },
+                onSecondaryTap: () {
+                  // Clic droit pour attaquer aussi
+                  _currentPlayer?.triggerAttack();
+                },
+                child: FadeTransition(
+                  opacity: _fadeController,
+                  child: BonfireWidget(
                   map: map.map,
                   player: player,
                   components: components,
                   overlayBuilderMap: {
                     'inventory': (context, game) => InventoryOverlay(game: game),
+                    'lifebar': (context, game) => PlayerLifeBar(game: game),
                   },
-                  initialActiveOverlays: const ['inventory'],
+                  initialActiveOverlays: const ['inventory', 'lifebar'],
                   playerControllers: [
                     Joystick(
                       directional: JoystickDirectional(
@@ -152,6 +289,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                           color: Colors.redAccent.withOpacity(0.8),
                           alignment: Alignment.bottomRight,
                           margin: const EdgeInsets.only(right: 60, bottom: 40),
+                          enableDirection: false,
+                          sprite: Sprite.load('player/attack_effect_right.png'),
                         ),
                         JoystickAction(
                           actionId: 1,
@@ -174,12 +313,31 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       () => _fadeController.forward(),
                     );
                   },
+                  ),
                 ),
               ),
-              const BackButtonWidget()
+              const BackButtonWidget(),
+              if (_showPortalUnlocked)
+                const PortalUnlockedMessage(),
+              if (_showDizzyMessage)
+                const DizzyMessage(),
+              if (_isGameOver)
+                GameOverOverlay(
+                  onRestart: () {
+                    setState(() {
+                      _isGameOver = false;
+                      _showPortalUnlocked = false;
+                      _portalWasUnlocked = false;
+                    });
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (context) => const GameScreen()),
+                    );
+                  },
+                ),
             ],
           );
         },
+        ),
       ),
     );
   }
