@@ -5,11 +5,13 @@ import 'package:app/components/ui/player_life_bar.dart';
 import 'package:app/components/ui/game_over_overlay.dart';
 import 'package:app/components/ui/portal_unlocked_message.dart';
 import 'package:app/components/ui/dizzy_message.dart';
+import 'package:app/components/game-items/exit_door.dart';
 import 'package:bonfire/bonfire.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:app/components/game-items/tree_portal.dart';
 import 'package:app/components/ui/back_button_widget.dart';
+import 'end_game_cinematic.dart';
 import '../components/knight.dart';
 
 class GameScreen extends StatefulWidget {
@@ -88,7 +90,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         if (_currentPlayer == null) return;
         
         if (event is RawKeyDownEvent) {
-          if (_showPortalUnlocked) return;
+          if (_showPortalUnlocked || _showDizzyMessage) return;
           _currentPlayer!.onKeyDown(event.logicalKey);
         } else if (event is RawKeyUpEvent) {
           _currentPlayer!.onKeyUp(event.logicalKey);
@@ -169,10 +171,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   
                   if (hasAll && !_portalWasUnlocked) {
                     _portalWasUnlocked = true;
+                    
                     _currentPlayer?.clearKeys();
+                    
                     setState(() {
                       _showPortalUnlocked = true;
                     });
+                    
+                    Future.delayed(const Duration(milliseconds: 50), () {
+                      _currentPlayer?.clearKeys();
+                    });
+                    
                     Future.delayed(const Duration(seconds: 4), () {
                       if (mounted) {
                         _currentPlayer?.clearKeys();
@@ -220,6 +229,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   return true;
                 },
                 onTeleport: () {
+                  setState(() {
+                    _showPortalUnlocked = false;
+                  });
+                  _currentPlayer?.clearKeys();
+                  _keyboardFocusNode.requestFocus();
+                  
                   MapNavigator.of(context).toNamed('/map2');
                   
                   Future.delayed(const Duration(milliseconds: 500), () {
@@ -234,6 +249,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                           setState(() {
                             _showDizzyMessage = false;
                           });
+                          _keyboardFocusNode.requestFocus();
+                          _currentPlayer?.clearKeys();
                         }
                       });
                     }
@@ -243,10 +260,22 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             ]);
           } else if (id == '/map2') {
             components.addAll([
-              KeyItem(Vector2(288, 128), color: KeyColor.blue),
-              TreePortal(
-                position: Vector2(tileSize * 2, tileSize * 5),
-                onTeleport: () => MapNavigator.of(context).toNamed('/map1'),
+              ExitDoor(
+                position: Vector2(tileSize * 12, tileSize * 18),
+                canOpen: () {
+                  return true;
+                },
+                onPlayerEnter: () {
+                  if (mounted) {
+                    Future.microtask(() {
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (context) => const EndGameCinematic(),
+                        ),
+                      );
+                    });
+                  }
+                },
               ),
             ]);
           }
