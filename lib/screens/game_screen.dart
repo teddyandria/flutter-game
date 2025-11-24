@@ -25,7 +25,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late AnimationController _fadeController;
   late FocusNode _keyboardFocusNode;
   bool _isGameOver = false;
-  String _currentMapId = '/map1';
   bool _showPortalUnlocked = false;
   bool _portalWasUnlocked = false;
   bool _showDizzyMessage = false;
@@ -130,7 +129,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             onDeath: () {
               setState(() {
                 _isGameOver = true;
-                _currentMapId = id;
               });
             },
           );
